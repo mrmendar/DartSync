@@ -20,7 +20,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="true" />
+        <activity android:name=".HistoryDetailActivity" android:exported="false" />
+        <activity android:name=".StatisticsActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="false" />

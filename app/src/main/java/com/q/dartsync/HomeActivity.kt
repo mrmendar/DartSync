@@ -3,26 +3,35 @@ package com.q.dartsync
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 class HomeActivity : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
+        // Butonları Tanımlıyoruz
         val btnNewGame = findViewById<Button>(R.id.btnNewGame)
         val btnHistory = findViewById<Button>(R.id.btnHistory)
+        val btnStatistics = findViewById<Button>(R.id.btnStatistics)
 
-        // Yeni Oyun'a basınca MainActivity'ye (mevcut oyun ekranına) gider
+        // 🎯 Yeni Oyun Ekranına Git
         btnNewGame.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
 
-        // Kayıtlar'a basınca şimdilik sadece bir mesaj verelim (HistoryActivity'yi sonra yapacağız)
+        // 📚 Geçmiş Kayıtlar Ekranına Git
         btnHistory.setOnClickListener {
-            Toast.makeText(this, "Kayıtlar yakında burada olacak!", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, HistoryActivity::class.java)
+            startActivity(intent)
+        }
+
+        // 📊 İstatistik Ekranına Git (Senin eklediğin kısım)
+        btnStatistics.setOnClickListener {
+            val intent = Intent(this, StatisticsActivity::class.java)
+            startActivity(intent)
         }
     }
 }

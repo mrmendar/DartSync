@@ -1,19 +1,17 @@
 plugins {
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.ksp)
 }
 
 android {
     namespace = "com.q.dartsync"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 35 // Standart sürüme çekildi (36 ve release() bloğu hata verebilir)
 
     defaultConfig {
         applicationId = "com.q.dartsync"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -30,12 +28,26 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
+val room_version = "2.6.1"
+
 dependencies {
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
+    // KAPT yerine KSP kullanıyoruz:
+    ksp("androidx.room:room-compiler:$room_version")
+
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
