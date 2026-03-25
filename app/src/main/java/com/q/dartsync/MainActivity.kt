@@ -27,7 +27,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
+
         // 1. UI Bileşenlerini Bağla
+
         val editP1Name = findViewById<EditText>(R.id.editPlayer1Name)
         val editP2Name = findViewById<EditText>(R.id.editPlayer2Name)
         val tvP1Score = findViewById<TextView>(R.id.tvP1Remaining)
@@ -37,6 +40,15 @@ class MainActivity : AppCompatActivity() {
         val btnReset = findViewById<ImageButton>(R.id.btnReset)
         val btnEnter = findViewById<Button>(R.id.btnEnterScore)
 
+        val p1FromIntent = intent.getStringExtra("P1_NAME")
+        val p2FromIntent = intent.getStringExtra("P2_NAME")
+
+        if (!p1FromIntent.isNullOrEmpty()) {
+            editP1Name.setText(p1FromIntent)
+        }
+        if (!p2FromIntent.isNullOrEmpty()) {
+            editP2Name.setText(p2FromIntent)
+        }
         // 2. Siyah Ekran Önlemi: Ekranın çizilmesi için 100ms bekle ve sonra Dialog'u aç
         window.decorView.postDelayed({
             if (!isFinishing) {

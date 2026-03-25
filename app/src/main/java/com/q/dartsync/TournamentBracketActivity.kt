@@ -85,31 +85,41 @@ class TournamentBracketActivity : AppCompatActivity() {
     }
 
     private fun startNextRound() {
-        // 1. Mevcut turdaki kazananları topla
+        // 1. Mevcut turdaki kazanan isimlerini topla
         val winners = currentMatches.mapNotNull { it.winner }
 
-        // 2. Yeni tur eşleşmelerini oluştur (Kura çekmeden, kazanan sırasına göre)
-        // Not: Burada tekrar karıştırmak istemeyebilirsin, o yüzden createMatches yerine
-        // daha basit bir eşleşme mantığı kullanacağız.
-
+        // 2. Yeni tur listesini hazırla
         val nextRoundMatches = mutableListOf<TournamentMatch>()
+
+        // Kazananları ikişerli eşleştir
         for (i in 0 until winners.size step 2) {
             if (i + 1 < winners.size) {
-                nextRoundMatches.add(TournamentMatch(winners[i], winners[i+1]))
+                // ✅ Normal Eşleşme
+                nextRoundMatches.add(TournamentMatch(
+                    player1 = winners[i],
+                    player2 = winners[i + 1],
+                    winner = null, // Yeni maçta henüz kazanan yok
+                    round = 2 // Veya dinamik tur sayısı
+                ))
             } else {
-                // Tek kalan olursa yine BYE
-                nextRoundMatches.add(TournamentMatch(winners[i], "BYE", winner = winners[i]))
+                // ✅ Tek kalan varsa (BYE durumu)
+                nextRoundMatches.add(TournamentMatch(
+                    player1 = winners[i],
+                    player2 = "BYE",
+                    winner = winners[i], // Otomatik kazanan
+                    round = 2
+                ))
             }
         }
 
-        // 3. Listeyi ve ekranı güncelle
+        // 3. Mevcut listeyi boşalt ve yenisini yükle
         currentMatches.clear()
         currentMatches.addAll(nextRoundMatches)
+
+        // 4. Ekrana "Yenilendi" haberini ver
         adapter.notifyDataSetChanged()
 
-        // 4. Butonu tekrar gizle
         findViewById<Button>(R.id.btnNextRound).visibility = android.view.View.GONE
-
-        Toast.makeText(this, "Yeni Tur Hazır! Başarılar.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Sonraki Tur Hazır!", Toast.LENGTH_SHORT).show()
     }
 }
