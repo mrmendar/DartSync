@@ -5,7 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [GameResult::class], version = 1)
+// Version 1'den 2'ye yükseltildi. Yeni "winnerName" kolonu için bu şart.
+@Database(entities = [GameResult::class], version = 3,exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun gameResultDao(): GameResultDao
 
@@ -19,7 +20,13 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "dartsync_database"
-                ).build()
+                )
+                    /* * Mühendislik Notu: Aşağıdaki satır, şema değiştiğinde (Migration)
+                     * hata vermek yerine eski tabloyu silip yeni yapıya göre sıfırdan kurar.
+                     * Geliştirme aşamasında hayat kurtarır.
+                     */
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

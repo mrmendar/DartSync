@@ -6,4 +6,10 @@
     </style>
 
     <style name="Theme.DartSync" parent="Base.Theme.DartSync" />
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1A1A2E</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.DartSync</item>
+    </style>
+
 </resources>

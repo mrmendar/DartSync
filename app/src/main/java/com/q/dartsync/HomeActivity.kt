@@ -10,6 +10,13 @@ class HomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+        val btnTournament = findViewById<Button>(R.id.btnTournamentMode)
+
+        btnTournament.setOnClickListener {
+            // Turnuva kurulum ekranına geçiş yapıyoruz
+            val intent = Intent(this, TournamentSetupActivity::class.java)
+            startActivity(intent)
+        }
 
         // Butonları Tanımlıyoruz
         val btnNewGame = findViewById<Button>(R.id.btnNewGame)

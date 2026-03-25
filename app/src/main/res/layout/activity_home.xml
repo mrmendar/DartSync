@@ -62,6 +62,17 @@
             app:cornerRadius="12dp" />
 
         <Button
+            android:id="@+id/btnTournamentMode"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Turnuva Modu 🏆"
+            android:backgroundTint="#00D1FF"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            app:cornerRadius="12dp" />
+
+        <Button
             android:id="@+id/btnStatistics"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
