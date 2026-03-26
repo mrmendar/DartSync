@@ -7,34 +7,90 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/tvBracketTitle"
+        android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Turnuva Ağacı 🎯"
         android:textColor="#00D1FF"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvTournamentBracket"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+    <LinearLayout
+        android:id="@+id/layoutSemiFinal"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <include
+            android:id="@+id/match1"
+            layout="@layout/item_match_node"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="40dp" />
+
+        <include
+            android:id="@+id/match2"
+            layout="@layout/item_match_node"
+            android:layout_width="match_parent"
+            android:layout_height="60dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutFinal"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvBracketTitle" />
-    <Button
-        android:id="@+id/btnNextRound"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="SONRAKİ TURU BAŞLAT ➔"
-        android:visibility="gone"
-        android:backgroundTint="#00D26A"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:layout_marginTop="8dp"
-        app:cornerRadius="12dp"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <include
+            android:id="@+id/matchFinal"
+            layout="@layout/item_match_node"
+            android:layout_width="match_parent"
+            android:layout_height="60dp" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/line1"
+        android:layout_width="20dp"
+        android:layout_height="1dp"
+        android:background="#2D2D44"
+        app:layout_constraintStart_toEndOf="@id/layoutSemiFinal"
+        app:layout_constraintTop_toTopOf="@id/layoutSemiFinal"
+        android:layout_marginTop="30dp" />
+
+    <View
+        android:id="@+id/line2"
+        android:layout_width="20dp"
+        android:layout_height="1dp"
+        android:background="#2D2D44"
+        app:layout_constraintStart_toEndOf="@id/layoutSemiFinal"
+        app:layout_constraintBottom_toBottomOf="@id/layoutSemiFinal"
+        android:layout_marginBottom="30dp" />
+
+    <View
+        android:id="@+id/lineVert"
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:background="#2D2D44"
+        app:layout_constraintStart_toEndOf="@id/line1"
+        app:layout_constraintTop_toTopOf="@id/line1"
+        app:layout_constraintBottom_toBottomOf="@id/line2" />
+
+    <View
+        android:id="@+id/lineToFinal"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="#2D2D44"
+        app:layout_constraintStart_toEndOf="@id/lineVert"
+        app:layout_constraintEnd_toStartOf="@id/layoutFinal"
+        app:layout_constraintTop_toTopOf="@id/layoutFinal"
+        app:layout_constraintBottom_toBottomOf="@id/layoutFinal" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

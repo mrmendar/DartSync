@@ -3,34 +3,26 @@ package com.q.dartsync
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 
 class TournamentBracketActivity : AppCompatActivity() {
 
-    private lateinit var currentMatches: MutableList<TournamentMatch>
-    private lateinit var adapter: MatchAdapter
-    private var lastPlayedMatchIndex: Int = -1
-    private var selectedMode: String = "501" // 🔥 Seçilen modu tutmak için değişken
+    private var selectedMode: String = "501"
+    private var lastPlayedMatchId: Int = -1 // 1: Match1, 2: Match2, 3: Final
 
-    // Maç bittiğinde kazananı getiren akıllı launcher
+    // Kazananların isimlerini tutmak için (Final maçını kurabilmek adına)
+    private var winner1: String? = null
+    private var winner2: String? = null
+
+    // 🔥 AKILLI LAUNCHER: Maç bittiğinde kazananı alır ve ağaca yerleştirir
     private val getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val winnerName = result.data?.getStringExtra("WINNER_NAME")
-
-            if (winnerName != null && lastPlayedMatchIndex != -1) {
-                // 1. Kazananı ilgili maçın içine yaz
-                currentMatches[lastPlayedMatchIndex].winner = winnerName
-
-                // 2. Ekranı güncelle
-                adapter.notifyDataSetChanged()
-
-                // 3. Round bitti mi kontrol et
-                checkRoundCompletion()
+            if (winnerName != null) {
+                updateBracketAfterMatch(winnerName)
             }
         }
     }
@@ -39,92 +31,87 @@ class TournamentBracketActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tournament_bracket)
 
-        // 1. Intent'ten isimleri VE seçilen modu al
+        // 1. Verileri Al
         val names = intent.getStringArrayListExtra("NAMES") ?: arrayListOf()
-        selectedMode = intent.getStringExtra("SELECTED_MODE") ?: "501" // 🔥 Kurulumdan gelen seçim
+        selectedMode = intent.getStringExtra("SELECTED_MODE") ?: "501"
 
-        // İlk tur eşleşmelerini oluştur
-        currentMatches = TournamentLogic.createMatches(names).toMutableList()
+        if (names.size < 4) {
+            Toast.makeText(this, "Hata: En az 4 oyuncu gerekli!", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
-        val rv = findViewById<RecyclerView>(R.id.rvTournamentBracket)
-        rv.layoutManager = LinearLayoutManager(this)
+        // 2. Yarı Final 1 (match1)
+        setupMatchView(findViewById(R.id.match1), names[0], names[1], 1)
 
-        // 2. 🔥 AKILLI ADAPTER: Seçilen moda göre doğru sayfayı açar
-        adapter = MatchAdapter(currentMatches) { match, position ->
-            lastPlayedMatchIndex = position
+        // 3. Yarı Final 2 (match2)
+        setupMatchView(findViewById(R.id.match2), names[2], names[3], 2)
 
-            // Hangi sayfaya gideceğimizi belirliyoruz
-            val targetActivity = if (selectedMode == "CRICKET") {
-                CricketActivity::class.java
-            } else {
-                MainActivity::class.java
+        // 4. Final Maçı (Başta boş)
+        updateFinalView()
+    }
+
+    private fun setupMatchView(matchView: View, p1: String, p2: String, matchId: Int) {
+        val tvTop = matchView.findViewById<TextView>(R.id.tvPlayerTop)
+        val tvBottom = matchView.findViewById<TextView>(R.id.tvPlayerBottom)
+
+        tvTop.text = p1
+        tvBottom.text = p2
+
+        matchView.setOnClickListener {
+            if (p1 == "Bekleniyor..." || p2 == "Bekleniyor...") {
+                Toast.makeText(this, "Önce yarı finaller bitmeli!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
 
+            lastPlayedMatchId = matchId
+            val targetActivity = if (selectedMode == "CRICKET") CricketActivity::class.java else MainActivity::class.java
+
             val intent = Intent(this, targetActivity).apply {
-                putExtra("P1_NAME", match.player1)
-                putExtra("P2_NAME", match.player2)
+                putExtra("P1_NAME", p1)
+                putExtra("P2_NAME", p2)
                 putExtra("IS_TOURNAMENT", true)
             }
             getResult.launch(intent)
         }
-        rv.adapter = adapter
     }
 
-    private fun checkRoundCompletion() {
-        val btnNext = findViewById<Button>(R.id.btnNextRound)
-        val allFinished = currentMatches.all { it.winner != null }
-
-        if (allFinished) {
-            if (currentMatches.size == 1) {
-                // Şampiyon belli oldu!
-                val winner = currentMatches[0].winner
-                Toast.makeText(this, "🏆 ŞAMPİYON: $winner 🏆", Toast.LENGTH_LONG).show()
-                btnNext.text = "TURNUVAYI BİTİR"
-                btnNext.visibility = View.VISIBLE
-                btnNext.setOnClickListener { finish() }
-            } else {
-                // Tur bitti, sonraki tura geçiş butonu
-                btnNext.visibility = View.VISIBLE
-                btnNext.setOnClickListener {
-                    startNextRound()
-                }
+    private fun updateBracketAfterMatch(winnerName: String) {
+        when (lastPlayedMatchId) {
+            1 -> {
+                winner1 = winnerName
+                Toast.makeText(this, "1. Finalist: $winnerName", Toast.LENGTH_SHORT).show()
+            }
+            2 -> {
+                winner2 = winnerName
+                Toast.makeText(this, "2. Finalist: $winnerName", Toast.LENGTH_SHORT).show()
+            }
+            3 -> {
+                // ŞAMPİYON BELLİ OLDU
+                showChampionDialog(winnerName)
             }
         }
+        updateFinalView()
     }
 
-    private fun startNextRound() {
-        // 1. Mevcut turdaki kazanan isimlerini topla
-        val winners = currentMatches.mapNotNull { it.winner }
+    private fun updateFinalView() {
+        val finalMatchView = findViewById<View>(R.id.matchFinal)
+        val p1 = winner1 ?: "Bekleniyor..."
+        val p2 = winner2 ?: "Bekleniyor..."
 
-        // 2. Yeni tur listesini hazırla
-        val nextRoundMatches = mutableListOf<TournamentMatch>()
+        setupMatchView(finalMatchView, p1, p2, 3)
 
-        for (i in 0 until winners.size step 2) {
-            if (i + 1 < winners.size) {
-                nextRoundMatches.add(TournamentMatch(
-                    player1 = winners[i],
-                    player2 = winners[i + 1],
-                    winner = null,
-                    round = 2
-                ))
-            } else {
-                nextRoundMatches.add(TournamentMatch(
-                    player1 = winners[i],
-                    player2 = "BYE",
-                    winner = winners[i],
-                    round = 2
-                ))
-            }
-        }
+        // Finalistlerin ismini yeşil yapalım (Vurgu)
+        if (winner1 != null) finalMatchView.findViewById<TextView>(R.id.tvPlayerTop).setTextColor(android.graphics.Color.parseColor("#00D26A"))
+        if (winner2 != null) finalMatchView.findViewById<TextView>(R.id.tvPlayerBottom).setTextColor(android.graphics.Color.parseColor("#00D26A"))
+    }
 
-        // 3. Mevcut listeyi boşalt ve yenisini yükle
-        currentMatches.clear()
-        currentMatches.addAll(nextRoundMatches)
-
-        // 4. Ekranı güncelle
-        adapter.notifyDataSetChanged()
-
-        findViewById<Button>(R.id.btnNextRound).visibility = View.GONE
-        Toast.makeText(this, "Sonraki Tur Hazır!", Toast.LENGTH_SHORT).show()
+    private fun showChampionDialog(winnerName: String) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("🏆 TURNUVA ŞAMPİYONU 🏆")
+            .setMessage("Tebrikler $winnerName! DartSync Turnuvasını kazandın.")
+            .setPositiveButton("Bitir") { _, _ -> finish() }
+            .setCancelable(false)
+            .show()
     }
 }

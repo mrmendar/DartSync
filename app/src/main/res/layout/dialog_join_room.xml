@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#1A1A2E">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Online Oda Sistemi"
+        android:textColor="#00D1FF"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etRoomCode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Oda Kodu (Örn: 1234)"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#666666"
+        android:inputType="number"
+        android:importantForAutofill="no"
+        android:textAlignment="center"
+        android:backgroundTint="#00D1FF" />
+
+    <Button
+        android:id="@+id/btnJoinRoom"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:layout_marginTop="16dp"
+        android:text="ODAYA KATIL"
+        android:backgroundTint="#00D26A" />
+
+    <Button
+        android:id="@+id/btnCreateRoom"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:layout_marginTop="8dp"
+        android:text="YENİ ODA KUR"
+        android:backgroundTint="#6C63FF" />
+</LinearLayout>

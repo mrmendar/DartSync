@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:gravity="center"
+    android:background="#1A1A2E">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Kuralar Çekiliyor..."
+        android:textColor="#00D1FF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvShufflingName"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_marginTop="20dp"
+        android:background="#10101e"
+        android:gravity="center"
+        android:text="qqq"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+
+    <ProgressBar
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="24dp"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:indeterminate="true"
+        android:indeterminateTint="#00D1FF" />
+
+</LinearLayout>

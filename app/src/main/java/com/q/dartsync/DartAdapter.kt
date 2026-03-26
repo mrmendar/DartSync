@@ -11,7 +11,9 @@ import androidx.recyclerview.widget.RecyclerView
 class DartAdapter(
     private val targetList: List<DartTarget>,
     private val isReadOnly: Boolean = false,
-    private val onWin: (Int) -> Unit = {}
+    private val onWin: (Int) -> Unit = {},
+    // Hibrit mod için callback (Hangi sayı, Hangi oyuncu, Yeni vuruş sayısı)
+    private val onHit: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) : RecyclerView.Adapter<DartAdapter.DartViewHolder>() {
 
     class DartViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -29,57 +31,77 @@ class DartAdapter(
 
     override fun onBindViewHolder(holder: DartViewHolder, position: Int) {
         val currentTarget = targetList[position]
-        holder.textViewLabel.text = currentTarget.label
+
+        // --- 🎯 1. KISALTMALAR (UI Temsili) ---
+        // Orta sütundaki tam kelimeleri (Double, Triple...) kısaltmalara (D, T...) dönüştür
+        val uiLabel = when (currentTarget.label) {
+            "Double" -> "D"
+            "Triple" -> "T"
+            "Bull" -> "B"
+            "House" -> "H"
+            else -> currentTarget.label // Sayılar aynı kalır (20, 19...)
+        }
+        holder.textViewLabel.text = uiLabel
 
         // İkonları güncelle
         updateUI(holder.imageViewHit1, currentTarget.player1Hits)
         updateUI(holder.imageViewHit2, currentTarget.player2Hits)
 
-        // --- VURGULAMA VE KENARLIK KORUMA ---
-        // Oyuncu 1 Hücresi
+        // --- 🛡️ 2. RENK HATASI DÜZELTMESİ (P1 vs P2) ---
+        // Kapandığında (>3 vuruş) her iki hücrenin de aynı, parlak koyu yeşil saydamlığıyla vurgulanmasını sağla
         if (currentTarget.player1Hits >= 3) {
-            holder.player1Cell.setBackgroundColor(Color.parseColor("#C8E6C9")) // Kapandıysa Yeşil
+            // Sol taraftaki "çok siyah"laşma giderildi, koyu tema dostu parlak yeşil saydamlığı (#1A00D26A) uygulandı
+            holder.player1Cell.setBackgroundColor(Color.parseColor("#1A00D26A"))
         } else {
-            // Burası kritik: Şeffaf yapmak yerine orijinal kenarlıklı tasarımı geri yüklüyoruz
             holder.player1Cell.setBackgroundResource(R.drawable.bg_cell)
         }
 
-        // Oyuncu 2 Hücresi
         if (currentTarget.player2Hits >= 3) {
-            holder.player2Cell.setBackgroundColor(Color.parseColor("#C8E6C9")) // Kapandıysa Yeşil
+            // Sağ taraftaki açık yeşil yerine P1 ile aynı tutarlı koyu yeşil uygulandı
+            holder.player2Cell.setBackgroundColor(Color.parseColor("#1A00D26A"))
         } else {
             holder.player2Cell.setBackgroundResource(R.drawable.bg_cell)
         }
 
-        // --- KİLİTLEME MANTIĞI ---
+        // --- TIKLAMA VE SENKRONİZASYON MANTIĞI ---
         if (!isReadOnly) {
-            // Tıklama (Normal artış)
+            // Oyuncu 1 Hücresi (P1)
             holder.player1Cell.setOnClickListener {
                 currentTarget.player1Hits = if (currentTarget.player1Hits >= 3) 0 else currentTarget.player1Hits + 1
                 notifyItemChanged(position)
+
+                // 🔥 Senkronizasyon callback'ini tam kelime (target.label) ile tetikle (veri kaybı yok!)
+                onHit(currentTarget.label, 1, currentTarget.player1Hits)
                 checkWinner(1)
             }
-            // Uzun Basma (Direkt Nokta Atışı)
+            // Oyuncu 1 Uzun Basma (Direkt Nokta Atışı)
             holder.player1Cell.setOnLongClickListener {
                 currentTarget.player1Hits = if (currentTarget.player1Hits == 4) 0 else 4
                 notifyItemChanged(position)
+
+                onHit(currentTarget.label, 1, currentTarget.player1Hits)
                 checkWinner(1)
                 true
             }
 
+            // Oyuncu 2 Hücresi (P2)
             holder.player2Cell.setOnClickListener {
                 currentTarget.player2Hits = if (currentTarget.player2Hits >= 3) 0 else currentTarget.player2Hits + 1
                 notifyItemChanged(position)
+
+                onHit(currentTarget.label, 2, currentTarget.player2Hits)
                 checkWinner(2)
             }
             holder.player2Cell.setOnLongClickListener {
                 currentTarget.player2Hits = if (currentTarget.player2Hits == 4) 0 else 4
                 notifyItemChanged(position)
+
+                onHit(currentTarget.label, 2, currentTarget.player2Hits)
                 checkWinner(2)
                 true
             }
         } else {
-            // Eğer salt okunur moddaysa tıklama olaylarını tamamen temizle
+            // Eğer salt okunur moddaysa tıklama olaylarını temizle
             holder.player1Cell.setOnClickListener(null)
             holder.player1Cell.setOnLongClickListener(null)
             holder.player2Cell.setOnClickListener(null)
