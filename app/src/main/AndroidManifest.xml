@@ -16,7 +16,7 @@
             android:windowSoftInputMode="adjustPan"
             android:exported="true">
         </activity>
-
+        <activity android:name=".CricketActivity" android:exported="false" />
         <activity android:name=".TournamentSetupActivity" android:exported="false" />
         <activity android:name=".TournamentBracketActivity" android:exported="false" />
         <activity

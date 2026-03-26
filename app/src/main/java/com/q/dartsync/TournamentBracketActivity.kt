@@ -2,6 +2,7 @@ package com.q.dartsync
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,8 +15,9 @@ class TournamentBracketActivity : AppCompatActivity() {
     private lateinit var currentMatches: MutableList<TournamentMatch>
     private lateinit var adapter: MatchAdapter
     private var lastPlayedMatchIndex: Int = -1
+    private var selectedMode: String = "501" // 🔥 Seçilen modu tutmak için değişken
 
-    // 🔥 Maç bittiğinde kazananı getiren akıllı launcher
+    // Maç bittiğinde kazananı getiren akıllı launcher
     private val getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val winnerName = result.data?.getStringExtra("WINNER_NAME")
@@ -27,7 +29,7 @@ class TournamentBracketActivity : AppCompatActivity() {
                 // 2. Ekranı güncelle
                 adapter.notifyDataSetChanged()
 
-                // 3. Round bitti mi kontrol et (Eğer tüm maçlar bittiyse bir sonraki tura geçebiliriz)
+                // 3. Round bitti mi kontrol et
                 checkRoundCompletion()
             }
         }
@@ -37,20 +39,28 @@ class TournamentBracketActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tournament_bracket)
 
-        // Intent'ten isimleri al
+        // 1. Intent'ten isimleri VE seçilen modu al
         val names = intent.getStringArrayListExtra("NAMES") ?: arrayListOf()
+        selectedMode = intent.getStringExtra("SELECTED_MODE") ?: "501" // 🔥 Kurulumdan gelen seçim
 
-        // İlk tur eşleşmelerini oluştur (MutableList yapıyoruz ki değiştirebilelim)
+        // İlk tur eşleşmelerini oluştur
         currentMatches = TournamentLogic.createMatches(names).toMutableList()
 
         val rv = findViewById<RecyclerView>(R.id.rvTournamentBracket)
         rv.layoutManager = LinearLayoutManager(this)
 
-        // 🔥 Artık adapter hem maçı hem de pozisyonunu döndürüyor
+        // 2. 🔥 AKILLI ADAPTER: Seçilen moda göre doğru sayfayı açar
         adapter = MatchAdapter(currentMatches) { match, position ->
-            lastPlayedMatchIndex = position // Hangi maça tıklandığını kaydet
+            lastPlayedMatchIndex = position
 
-            val intent = Intent(this, MainActivity::class.java).apply {
+            // Hangi sayfaya gideceğimizi belirliyoruz
+            val targetActivity = if (selectedMode == "CRICKET") {
+                CricketActivity::class.java
+            } else {
+                MainActivity::class.java
+            }
+
+            val intent = Intent(this, targetActivity).apply {
                 putExtra("P1_NAME", match.player1)
                 putExtra("P2_NAME", match.player2)
                 putExtra("IS_TOURNAMENT", true)
@@ -59,8 +69,6 @@ class TournamentBracketActivity : AppCompatActivity() {
         }
         rv.adapter = adapter
     }
-
-    // TournamentBracketActivity.kt içinde checkRoundCompletion fonksiyonunu güncelle ve butonun click listener'ını ekle
 
     private fun checkRoundCompletion() {
         val btnNext = findViewById<Button>(R.id.btnNextRound)
@@ -72,11 +80,11 @@ class TournamentBracketActivity : AppCompatActivity() {
                 val winner = currentMatches[0].winner
                 Toast.makeText(this, "🏆 ŞAMPİYON: $winner 🏆", Toast.LENGTH_LONG).show()
                 btnNext.text = "TURNUVAYI BİTİR"
-                btnNext.visibility = android.view.View.VISIBLE
+                btnNext.visibility = View.VISIBLE
                 btnNext.setOnClickListener { finish() }
             } else {
                 // Tur bitti, sonraki tura geçiş butonu
-                btnNext.visibility = android.view.View.VISIBLE
+                btnNext.visibility = View.VISIBLE
                 btnNext.setOnClickListener {
                     startNextRound()
                 }
@@ -91,22 +99,19 @@ class TournamentBracketActivity : AppCompatActivity() {
         // 2. Yeni tur listesini hazırla
         val nextRoundMatches = mutableListOf<TournamentMatch>()
 
-        // Kazananları ikişerli eşleştir
         for (i in 0 until winners.size step 2) {
             if (i + 1 < winners.size) {
-                // ✅ Normal Eşleşme
                 nextRoundMatches.add(TournamentMatch(
                     player1 = winners[i],
                     player2 = winners[i + 1],
-                    winner = null, // Yeni maçta henüz kazanan yok
-                    round = 2 // Veya dinamik tur sayısı
+                    winner = null,
+                    round = 2
                 ))
             } else {
-                // ✅ Tek kalan varsa (BYE durumu)
                 nextRoundMatches.add(TournamentMatch(
                     player1 = winners[i],
                     player2 = "BYE",
-                    winner = winners[i], // Otomatik kazanan
+                    winner = winners[i],
                     round = 2
                 ))
             }
@@ -116,10 +121,10 @@ class TournamentBracketActivity : AppCompatActivity() {
         currentMatches.clear()
         currentMatches.addAll(nextRoundMatches)
 
-        // 4. Ekrana "Yenilendi" haberini ver
+        // 4. Ekranı güncelle
         adapter.notifyDataSetChanged()
 
-        findViewById<Button>(R.id.btnNextRound).visibility = android.view.View.GONE
+        findViewById<Button>(R.id.btnNextRound).visibility = View.GONE
         Toast.makeText(this, "Sonraki Tur Hazır!", Toast.LENGTH_SHORT).show()
     }
 }

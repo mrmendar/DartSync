@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.RadioButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,6 +22,9 @@ class TournamentSetupActivity : AppCompatActivity() {
         val btnUpdate = findViewById<Button>(R.id.btnUpdateList)
         val btnStart = findViewById<Button>(R.id.btnStartTournament)
         val rvInputs = findViewById<RecyclerView>(R.id.rvParticipantInputs)
+
+        // 🔥 Oyun Modu Seçenekleri
+        val rbCricket = findViewById<RadioButton>(R.id.rbCricket)
 
         // 1. Başlangıç Kurulumu (Varsayılan 4 Kişi)
         adapter = ParticipantInputAdapter(4)
@@ -48,17 +52,22 @@ class TournamentSetupActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // 🔥 EKRAN GEÇİŞİ VE VERİ TAŞIMA
-            // Algoritma TournamentBracketActivity içinde de çalıştırılabilir
-            // ama biz isim listesini temiz bir şekilde gönderiyoruz.
+            // 🔥 OYUN MODUNU TESPİT ET
+            val selectedMode = if (rbCricket.isChecked) "CRICKET" else "501"
+
+            // 4. EKRAN GEÇİŞİ VE VERİ TAŞIMA
             val intent = Intent(this, TournamentBracketActivity::class.java).apply {
+                // İsim listesini gönderiyoruz
                 putStringArrayListExtra("NAMES", ArrayList(names))
+                // 🔥 Seçilen oyun modunu da gönderiyoruz ki ağaç bunu bilsin!
+                putExtra("SELECTED_MODE", selectedMode)
             }
 
             startActivity(intent)
 
             // Bilgilendirme mesajı
-            Toast.makeText(this, "${names.size} kişilik turnuva başlıyor!", Toast.LENGTH_SHORT).show()
+            val modeText = if (selectedMode == "CRICKET") "Kriket" else "501"
+            Toast.makeText(this, "$modeText modunda ${names.size} kişilik turnuva başlıyor!", Toast.LENGTH_SHORT).show()
         }
     }
 }

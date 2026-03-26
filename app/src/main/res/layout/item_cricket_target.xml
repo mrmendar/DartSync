@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardBackgroundColor="#1A1A2E"
+    app:cardCornerRadius="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvNumber"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:text="20"
+            android:textColor="#00D1FF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <Button android:id="@+id/btnH" android:layout_width="45dp" android:layout_height="45dp" android:text="H" android:backgroundTint="#444444" android:textSize="12sp" android:layout_margin="2dp" />
+        <Button android:id="@+id/btnD" android:layout_width="45dp" android:layout_height="45dp" android:text="D" android:backgroundTint="#00D1FF" android:textSize="12sp" android:layout_margin="2dp" />
+        <Button android:id="@+id/btnT" android:layout_width="45dp" android:layout_height="45dp" android:text="T" android:backgroundTint="#FFD700" android:textSize="12sp" android:layout_margin="2dp" />
+        <Button android:id="@+id/btnB" android:layout_width="45dp" android:layout_height="45dp" android:text="B" android:backgroundTint="#FF4444" android:textSize="12sp" android:layout_margin="2dp" />
+
+        <TextView
+            android:id="@+id/tvCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0/10"
+            android:textAlignment="viewEnd"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
