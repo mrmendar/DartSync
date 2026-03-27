@@ -1,6 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="bg_dark">#1A1A2E</color>
+    <color name="bg_card">#16213E</color>
+
+    <color name="neon_green">#00D26A</color>
+    <color name="neon_blue">#00D1FF</color>
+    <color name="neon_purple">#9D50BB</color>
+
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_gray">#A0A0A0</color>
     <color name="splash_bg">#1A1A2E</color>
+
+
+
+        <color name="black">#FF000000</color>
+
+        <color name="white">#FFFFFFFF</color>
+
+        <color name="purple_200">#FFBB86FC</color>
+
+
 </resources>

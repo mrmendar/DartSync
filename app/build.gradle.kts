@@ -46,6 +46,7 @@ dependencies {
     implementation("androidx.room:room-ktx:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
     implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("nl.dionsegijn:konfetti-xml:2.0.4")
 
     implementation("com.google.firebase:firebase-database-ktx:20.3.0")
 

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "731092077139",
+    "firebase_url": "https://dartsyncforq-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "dartsyncforq",
+    "storage_bucket": "dartsyncforq.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731092077139:android:424cc40132df905681d4a6",
+        "android_client_info": {
+          "package_name": "com.q.dartsync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Xl13G-7i3R8BSFN6XEkocPPKf6puVoo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
