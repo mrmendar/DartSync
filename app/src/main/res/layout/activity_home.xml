@@ -73,6 +73,15 @@
             android:textAllCaps="false"
             android:textSize="18sp"
             app:cornerRadius="16dp" />
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Oturumu Kapat"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:textColor="#FF4444"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="center"/>
 
     </LinearLayout>
 

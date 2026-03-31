@@ -1,8 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // KSP (Room Compiler için gerekli)
+    // KSP (Room Compiler için gerekli) - Dokunmadım.
     alias(libs.plugins.kotlin.ksp)
+    // Firebase Google Services eklentisi
     alias(libs.plugins.google.gms.google.services)
 }
 
@@ -47,9 +48,12 @@ dependencies {
     ksp("androidx.room:room-compiler:$room_version")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("nl.dionsegijn:konfetti-xml:2.0.4")
-
     implementation("com.google.firebase:firebase-database-ktx:20.3.0")
 
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-common-ktx")
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     // --- Lifecycle & Coroutines ---
