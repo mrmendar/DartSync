@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:text="HEDEF: 120"
         android:textColor="#00D26A"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:text="Kalan Ok: 9"
         android:textColor="#FFD700"
-        android:textSize="20sp"
+        android:textSize="18sp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -33,9 +33,7 @@
         android:orientation="vertical"
         android:gravity="center"
         app:layout_constraintTop_toBottomOf="@+id/tvTargetLevel"
-        app:layout_constraintBottom_toTopOf="@+id/linearInputArea"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="20dp">
+        app:layout_constraintBottom_toTopOf="@+id/linearBottomArea">
 
         <TextView
             android:id="@+id/tvCurrentScore"
@@ -43,27 +41,26 @@
             android:layout_height="wrap_content"
             android:text="120"
             android:textColor="#FFFFFF"
-            android:textSize="90sp"
+            android:textSize="100sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvCheckoutHint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="T20 - T20 - DB"
+            android:layout_marginTop="8dp"
+            android:text="Sayı düşmeye devam..."
             android:textColor="#A0A0A0"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="italic" />
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/linearInputArea"
+        android:id="@+id/linearBottomArea"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <TextView
@@ -72,14 +69,28 @@
             android:layout_height="wrap_content"
             android:text="0"
             android:textColor="#00D1FF"
-            android:textSize="40sp"
-            android:layout_marginBottom="8dp"/>
+            android:textSize="44sp"
+            android:layout_marginBottom="16dp" />
 
         <GridLayout
             android:id="@+id/keypadGrid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="3">
+            android:columnCount="3"
+            android:alignmentMode="alignMargins">
+
+            <Button android:id="@+id/btn1" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="1" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn2" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="2" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn3" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="3" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn4" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="4" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn5" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="5" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn6" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="6" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn7" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="7" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn8" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="8" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn9" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="9" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btnClear" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="C" android:textColor="#FF4B2B" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btn0" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="0" android:textColor="#FFFFFF" android:textSize="24sp" android:layout_columnWeight="1"/>
+            <Button android:id="@+id/btnEnterScore" style="@style/Widget.MaterialComponents.Button.TextButton" android:text="OK" android:textColor="#00D26A" android:textSize="24sp" android:textStyle="bold" android:layout_columnWeight="1"/>
         </GridLayout>
     </LinearLayout>
 

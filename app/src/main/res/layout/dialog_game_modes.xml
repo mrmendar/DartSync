@@ -60,14 +60,14 @@
             app:cornerRadius="12dp"/>
 
         <Button
-            android:id="@+id/modeSoon"
+            android:id="@+id/modeFinishMaster"
             android:layout_width="0dp"
             android:layout_height="100dp"
             android:layout_columnWeight="1"
             android:layout_margin="8dp"
-            android:text="Yakında..."
-            android:enabled="false"
-            android:backgroundTint="#151525"
+            android:text="120 - 170 🎯"
+            android:enabled="true"
+            android:backgroundTint="#2D2D44"
             app:cornerRadius="12dp"/>
 
     </GridLayout>

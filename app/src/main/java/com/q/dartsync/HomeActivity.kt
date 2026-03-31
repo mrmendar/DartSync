@@ -89,6 +89,11 @@ class HomeActivity : AppCompatActivity() {
                 val intent = Intent(this, TournamentSetupActivity::class.java)
                 startActivity(intent)
             }
+            modeView.findViewById<Button>(R.id.modeFinishMaster).setOnClickListener {
+                modeDialog.dismiss()
+                val intent = Intent(this, FinishMasterActivity::class.java)
+                startActivity(intent)
+            }
 
             modeDialog.setContentView(modeView)
             modeDialog.show()

@@ -53,7 +53,7 @@ class FinishMasterActivity : AppCompatActivity() {
 
                 targetLevel++
                 if (targetLevel > 170) {
-                    Toast.makeText(this, "FINISH MASTER TAMAMLANDI! 🏆", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "170 Tamamlandı! 🏆", Toast.LENGTH_LONG).show()
                     finishSessionAndSave()
                 } else {
                     resetLevel()
@@ -158,26 +158,27 @@ class FinishMasterActivity : AppCompatActivity() {
     private fun setupKeypad() {
         val tvInput = findViewById<TextView>(R.id.tvInput)
 
+        // 0'dan 9'a kadar olan butonları döngüyle bağla
         for (i in 0..9) {
             val resId = resources.getIdentifier("btn$i", "id", packageName)
-            if (resId != 0) {
-                findViewById<Button>(resId)?.setOnClickListener {
-                    if (currentInput.length < 3) {
-                        currentInput += i.toString()
-                        tvInput.text = currentInput
-                    }
+            findViewById<Button>(resId)?.setOnClickListener {
+                if (currentInput.length < 3) {
+                    currentInput += i.toString()
+                    tvInput.text = currentInput
                 }
             }
         }
 
+        // Silme butonu
         findViewById<Button>(R.id.btnClear)?.setOnClickListener {
             currentInput = ""
             tvInput.text = "0"
         }
 
+        // Onaylama butonu
         findViewById<Button>(R.id.btnEnterScore)?.setOnClickListener {
             val score = currentInput.toIntOrNull() ?: 0
-            processDart(score)
+            processDart(score) // Skor işleme fonksiyonun
             currentInput = ""
             tvInput.text = "0"
         }
