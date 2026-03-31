@@ -5,25 +5,34 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-// Version 1'den 2'ye yükseltildi. Yeni "winnerName" kolonu için bu şart.
-@Database(entities = [GameResult::class], version = 3,exportSchema = false)
+/**
+ * Version 3 Notu:
+ * - GameResult tablosuna 'winnerName' eklendi.
+ * - Antrenman modu (Finish Master) için istatistik kolonları eklendi.
+ */
+@Database(entities = [GameResult::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
+
     abstract fun gameResultDao(): GameResultDao
 
     companion object {
+        // @Volatile: INSTANCE değerinin tüm thread'lerde güncel kalmasını sağlar.
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
         fun getDatabase(context: Context): AppDatabase {
+            // Eğer INSTANCE null değilse onu döndür, null ise yeni oluştur (Thread-safe Singleton)
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "dartsync_database"
                 )
-                    /* * Mühendislik Notu: Aşağıdaki satır, şema değiştiğinde (Migration)
-                     * hata vermek yerine eski tabloyu silip yeni yapıya göre sıfırdan kurar.
-                     * Geliştirme aşamasında hayat kurtarır.
+                    /**
+                     * 🛠️ Mühendislik Notu:
+                     * Geliştirme aşamasında şema değiştikçe manuel SQL Migration yazmak yerine
+                     * eski tabloyu silip yenisini kurar. Production (Canlı) aşamasında bu satır
+                     * kaldırılıp yerine gerçek Migration senaryoları yazılmalıdır.
                      */
                     .fallbackToDestructiveMigration()
                     .build()

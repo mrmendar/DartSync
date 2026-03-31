@@ -11,6 +11,12 @@ data class GameResult(
     val date: Long,
     val p1Snapshot: String,
     val p2Snapshot: String,
-    val winnerName: String ,// Yeni eklenen alan: Kazananın ismi
-    val totalDarts: Int
+    val winnerName: String,
+    val totalDarts: Int,
+
+    // 🔥 Antrenman Modu (Finish Master) İçin Yeni Alanlar
+    val isFinishMasterMode: Boolean = false,
+    val finishedLevels: String = "",       // Örn: "120:3, 121:BUST, 122:6"
+    val sessionDurationMillis: Long = 0,   // Antrenman ne kadar sürdü?
+    val highestLevelReached: Int = 120     // Kullanıcının ulaştığı son seviye
 )
