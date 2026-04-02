@@ -135,7 +135,8 @@ class Game501Activity : AppCompatActivity() {
                     p1Snapshot = p1Score.toString(),
                     p2Snapshot = p2Score.toString(),
                     winnerName = winnerName,
-                    totalDarts = totalDartsThrown // 🔥 Toplam ok sayısı artık veritabanında
+                    totalDarts = totalDartsThrown,
+                    userId = IdManager.getGuestId(this)
                 )
 
                 lifecycleScope.launch {

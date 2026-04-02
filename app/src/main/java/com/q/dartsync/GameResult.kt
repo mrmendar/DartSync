@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "game_results")
 data class GameResult(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userId: String,
     val player1Name: String,
     val player2Name: String,
     val date: Long,

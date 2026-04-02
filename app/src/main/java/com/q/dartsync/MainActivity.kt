@@ -197,7 +197,8 @@ class MainActivity : AppCompatActivity() {
                 p1Snapshot = p1Remaining.toString(),
                 p2Snapshot = p2Remaining.toString(),
                 winnerName = winner,
-                totalDarts = totalDartsThrown
+                totalDarts = totalDartsThrown,
+                userId = IdManager.getGuestId(this@MainActivity)
             )
             AppDatabase.getDatabase(this@MainActivity).gameResultDao().insertGame(result)
 

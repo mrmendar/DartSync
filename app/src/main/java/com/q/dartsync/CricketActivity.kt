@@ -1,17 +1,19 @@
 package com.q.dartsync
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.view.View
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.database.*
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class CricketActivity : AppCompatActivity() {
@@ -20,45 +22,53 @@ class CricketActivity : AppCompatActivity() {
     private lateinit var adapter: DartAdapter
     private lateinit var etP1: EditText
     private lateinit var etP2: EditText
+    private lateinit var tvStatus: TextView
 
-    // 🌐 Online Mod Değişkenleri
+    // 📡 Online/Sıra Değişkenleri
     private var isOnline: Boolean = false
     private var roomCode: String = ""
-    private lateinit var dbRef: DatabaseReference
+    private var myRole: String = ""
+    private var myUid: String = ""
+    private var currentTurn: String = ""
+    private var dartsThrown = 0
+
+    private lateinit var db: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cricket)
 
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
+        myUid = auth.currentUser?.uid ?: ""
+
         // 1. Intent Verilerini Al
         isOnline = intent.getBooleanExtra("IS_ONLINE", false)
         roomCode = intent.getStringExtra("ROOM_CODE") ?: ""
+        myRole = intent.getStringExtra("ROLE") ?: "HOST"
 
         etP1 = findViewById(R.id.etP1Name)
         etP2 = findViewById(R.id.etP2Name)
+        tvStatus = findViewById(R.id.tvStatus)
 
-        // 2. Firebase Kurulumu (Eğer Online ise)
-        if (isOnline) {
-            // Toast ile hangi odada olduğunu gösterelim
-            Toast.makeText(this, "Oda: $roomCode - Online Bağlantı Hazır!", Toast.LENGTH_LONG).show()
-            dbRef = FirebaseDatabase.getInstance().getReference("rooms").child(roomCode)
-            setupFirebaseSync()
-        }
-
-        // 3. İsimleri Yerleştir
-        val p1FromIntent = intent.getStringExtra("P1_NAME") ?: "Oyuncu 1"
-        val p2FromIntent = intent.getStringExtra("P2_NAME") ?: "Oyuncu 2"
-        etP1.setText(p1FromIntent)
-        etP2.setText(p2FromIntent)
-
-        // 🔥 Online modda isimleri de senkronize et (Bir taraf değiştirince diğerinde değişsin)
-        setupNameSync()
-
-        // 4. Hedef Listesi (20 -> 10 ve D, T, B, H)
+        // 2. Hedef Listesi (20-10 ve Özel Alanlar)
         val labels = listOf("20", "19", "18", "17", "16", "15", "14", "13", "12", "11", "10", "Double", "Triple", "Bull", "House")
         targetList = labels.map { DartTarget(it) }
 
-        // 5. RecyclerView Ayarları
+        setupRecyclerView()
+
+        if (isOnline) {
+            if (myRole == "HOST") createCricketRoom() // Host ise odayı oluştur
+            setupOnlineMode()
+        }
+
+        // İsimleri yerleştir
+        etP1.setText(intent.getStringExtra("P1_NAME") ?: "Oyuncu 1")
+        etP2.setText(intent.getStringExtra("P2_NAME") ?: "Oyuncu 2")
+    }
+
+    private fun setupRecyclerView() {
         val rv = findViewById<RecyclerView>(R.id.rvCricketBoard)
         rv.layoutManager = LinearLayoutManager(this)
 
@@ -69,92 +79,116 @@ class CricketActivity : AppCompatActivity() {
                 val winnerName = if (playerIndex == 1) etP1.text.toString() else etP2.text.toString()
                 showWinDialog(winnerName)
             },
-            // 🔥 ADAPTER'A DOKUNUŞ: Tıklama olduğunda Firebase'e gönder (Eğer Online ise)
             onHit = { label, playerIndex, newHits ->
                 if (isOnline) {
-                    val pKey = if (playerIndex == 1) "p1Hits" else "p2Hits"
-                    dbRef.child("scores").child(label).child(pKey).setValue(newHits)
+                    // 🔥 SIRA KONTROLÜ: Sıra sende değilse işlem yapma
+                    if (currentTurn != myUid) {
+                        Toast.makeText(this, "Sıra rakipte, lütfen bekleyin.", Toast.LENGTH_SHORT).show()
+                        return@DartAdapter
+                    }
+
+                    dartsThrown++
+                    syncHitToFirebase(label, playerIndex, newHits)
                 }
             }
         )
         rv.adapter = adapter
     }
 
-    private fun setupFirebaseSync() {
-        // Firebase'deki skor değişikliklerini dinle
-        dbRef.child("scores").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (!snapshot.exists()) return
+    // 🔥 Odayı Firestore'da ilk kez oluşturma (Host için)
+    private fun createCricketRoom() {
+        val hitsMap = mutableMapOf<String, Map<String, Int>>()
+        targetList.forEach { hitsMap[it.label] = mapOf("p1" to 0, "p2" to 0) }
 
-                for (target in targetList) {
-                    val targetSnap = snapshot.child(target.label)
-                    target.player1Hits = targetSnap.child("p1Hits").getValue(Int::class.java) ?: 0
-                    target.player2Hits = targetSnap.child("p2Hits").getValue(Int::class.java) ?: 0
-                }
-                adapter.notifyDataSetChanged()
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        })
+        val newRoom = hashMapOf(
+            "roomCode" to roomCode,
+            "hostId" to myUid,
+            "guestId" to (intent.getStringExtra("OPPONENT_UID") ?: ""),
+            "hits" to hitsMap,
+            "currentTurn" to myUid,
+            "hostNickname" to (intent.getStringExtra("P1_NAME") ?: "Oyuncu 1"),
+            "guestNickname" to (intent.getStringExtra("P2_NAME") ?: "Oyuncu 2"),
+            "status" to "playing",
+            "gameMode" to "Cricket"
+        )
+        db.collection("rooms").document(roomCode).set(newRoom)
     }
 
-    private fun setupNameSync() {
-        if (!isOnline) return
+    private fun setupOnlineMode() {
+        db.collection("rooms").document(roomCode).addSnapshotListener { snapshot, e ->
+            if (e != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
 
-        // 1. Firebase'den isimleri oku
-        dbRef.child("names").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val n1 = snapshot.child("p1Name").getValue(String::class.java)
-                val n2 = snapshot.child("p2Name").getValue(String::class.java)
+            currentTurn = snapshot.getString("currentTurn") ?: ""
 
-                // Eğer odak EditText'te değilse (kullanıcı yazmıyorsa) ismi güncelle
-                if (!etP1.isFocused && n1 != null) etP1.setText(n1)
-                if (!etP2.isFocused && n2 != null) etP2.setText(n2)
+            // 🔥 SENKRONİZASYON: Firebase'deki hits haritasını listeye işle
+            val remoteHits = snapshot.get("hits") as? Map<String, Any>
+            remoteHits?.forEach { (label, players) ->
+                val playerMap = players as? Map<String, Any>
+                val target = targetList.find { it.label == label }
+                target?.apply {
+                    player1Hits = (playerMap?.get("p1") as? Long)?.toInt() ?: 0
+                    player2Hits = (playerMap?.get("p2") as? Long)?.toInt() ?: 0
+                }
             }
-            override fun onCancelled(error: DatabaseError) {}
-        })
 
-        // 2. İsim değiştiğinde Firebase'e yaz
-        etP1.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                if (etP1.isFocused) dbRef.child("names").child("p1Name").setValue(s.toString())
-            }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
+            // İsim Senkronu
+            if (!etP1.isFocused) etP1.setText(snapshot.getString("hostNickname") ?: "Oyuncu 1")
+            if (!etP2.isFocused) etP2.setText(snapshot.getString("guestNickname") ?: "Oyuncu 2")
 
-        etP2.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                if (etP2.isFocused) dbRef.child("names").child("p2Name").setValue(s.toString())
+            updateTurnUI()
+            adapter.notifyDataSetChanged() // Görseli anında yenile
+        }
+    }
+
+    private fun syncHitToFirebase(label: String, playerIndex: Int, newHits: Int) {
+        val roomRef = db.collection("rooms").document(roomCode)
+        val pKey = if (playerIndex == 1) "p1" else "p2"
+
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(roomRef)
+            val hostId = snapshot.getString("hostId") ?: ""
+            val guestId = snapshot.getString("guestId") ?: ""
+
+            // "hits.20.p1" gibi nested path kullanarak veriyi güncelle
+            transaction.update(roomRef, "hits.$label.$pKey", newHits)
+
+            // 3 ok bittiyse sırayı karşıya ver
+            if (dartsThrown >= 3) {
+                val nextTurn = if (myUid == hostId) guestId else hostId
+                transaction.update(roomRef, "currentTurn", nextTurn)
+                dartsThrown = 0
             }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
+            null
+        }
+    }
+
+    private fun updateTurnUI() {
+        val isMyTurn = currentTurn == myUid
+        tvStatus.text = if (isMyTurn) "SENİN SIRAN 🎯" else "RAKİP ATIŞI..."
+        tvStatus.setTextColor(if (isMyTurn) Color.GREEN else Color.RED)
+
+        // 🔥 FİZİKSEL KİLİT: Sıra sende değilse işaretleme yapılamaz
+        adapter.isReadOnly = !isMyTurn
     }
 
     private fun showWinDialog(winnerName: String) {
         AlertDialog.Builder(this)
-            .setTitle("TEBRİKLER! 🏆")
-            .setMessage("Kazanan: $winnerName\nMaç kaydedilsin mi?")
-            .setPositiveButton("Kaydet ve Bitir") { _, _ ->
-                if (isOnline) dbRef.removeValue() // Oyun bittiyse odayı temizle (opsiyonel)
-                saveGame(winnerName)
-            }
-            .setNegativeButton("Kapat", null)
+            .setTitle("OYUN BİTTİ! 🏆")
+            .setMessage("Kazanan: $winnerName")
+            .setPositiveButton("Kaydet ve Bitir") { _, _ -> saveGame(winnerName) }
             .setCancelable(false)
             .show()
     }
 
     private fun saveGame(winnerName: String) {
         lifecycleScope.launch {
-            val currentP1 = etP1.text.toString().ifEmpty { "Oyuncu 1" }
-            val currentP2 = etP2.text.toString().ifEmpty { "Oyuncu 2" }
-
             val p1Snapshot = targetList.joinToString(",") { it.player1Hits.toString() }
             val p2Snapshot = targetList.joinToString(",") { it.player2Hits.toString() }
 
             val result = GameResult(
-                player1Name = currentP1,
-                player2Name = currentP2,
+                userId = IdManager.getGuestId(this@CricketActivity),
+                player1Name = etP1.text.toString(),
+                player2Name = etP2.text.toString(),
                 winnerName = winnerName,
                 p1Snapshot = p1Snapshot,
                 p2Snapshot = p2Snapshot,
@@ -164,8 +198,11 @@ class CricketActivity : AppCompatActivity() {
 
             AppDatabase.getDatabase(this@CricketActivity).gameResultDao().insertGame(result)
 
-            val resultIntent = Intent().apply { putExtra("WINNER_NAME", winnerName) }
-            setResult(RESULT_OK, resultIntent)
+            // Sadece Host odayı silebilir
+            if (isOnline && myRole == "HOST") {
+                db.collection("rooms").document(roomCode).delete()
+            }
+
             finish()
         }
     }

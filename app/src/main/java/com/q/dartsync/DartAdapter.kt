@@ -10,9 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 
 class DartAdapter(
     private val targetList: List<DartTarget>,
-    private val isReadOnly: Boolean = false,
+    var isReadOnly: Boolean = false, // 🔥 Değişiklik yapıldı: Artık Activity'den erişilebilir ve değiştirilebilir.
     private val onWin: (Int) -> Unit = {},
-    // Hibrit mod için callback (Hangi sayı, Hangi oyuncu, Yeni vuruş sayısı)
     private val onHit: (String, Int, Int) -> Unit = { _, _, _ -> }
 ) : RecyclerView.Adapter<DartAdapter.DartViewHolder>() {
 
@@ -33,13 +32,12 @@ class DartAdapter(
         val currentTarget = targetList[position]
 
         // --- 🎯 1. KISALTMALAR (UI Temsili) ---
-        // Orta sütundaki tam kelimeleri (Double, Triple...) kısaltmalara (D, T...) dönüştür
         val uiLabel = when (currentTarget.label) {
             "Double" -> "D"
             "Triple" -> "T"
             "Bull" -> "B"
             "House" -> "H"
-            else -> currentTarget.label // Sayılar aynı kalır (20, 19...)
+            else -> currentTarget.label
         }
         holder.textViewLabel.text = uiLabel
 
@@ -47,38 +45,32 @@ class DartAdapter(
         updateUI(holder.imageViewHit1, currentTarget.player1Hits)
         updateUI(holder.imageViewHit2, currentTarget.player2Hits)
 
-        // --- 🛡️ 2. RENK HATASI DÜZELTMESİ (P1 vs P2) ---
-        // Kapandığında (>3 vuruş) her iki hücrenin de aynı, parlak koyu yeşil saydamlığıyla vurgulanmasını sağla
+        // --- 🛡️ 2. RENK AYARLARI (#1A00D26A) ---
         if (currentTarget.player1Hits >= 3) {
-            // Sol taraftaki "çok siyah"laşma giderildi, koyu tema dostu parlak yeşil saydamlığı (#1A00D26A) uygulandı
             holder.player1Cell.setBackgroundColor(Color.parseColor("#1A00D26A"))
         } else {
             holder.player1Cell.setBackgroundResource(R.drawable.bg_cell)
         }
 
         if (currentTarget.player2Hits >= 3) {
-            // Sağ taraftaki açık yeşil yerine P1 ile aynı tutarlı koyu yeşil uygulandı
             holder.player2Cell.setBackgroundColor(Color.parseColor("#1A00D26A"))
         } else {
             holder.player2Cell.setBackgroundResource(R.drawable.bg_cell)
         }
 
-        // --- TIKLAMA VE SENKRONİZASYON MANTIĞI ---
+        // --- ⚡ 3. TIKLAMA VE SENKRONİZASYON MANTIĞI ---
         if (!isReadOnly) {
             // Oyuncu 1 Hücresi (P1)
             holder.player1Cell.setOnClickListener {
                 currentTarget.player1Hits = if (currentTarget.player1Hits >= 3) 0 else currentTarget.player1Hits + 1
                 notifyItemChanged(position)
-
-                // 🔥 Senkronizasyon callback'ini tam kelime (target.label) ile tetikle (veri kaybı yok!)
                 onHit(currentTarget.label, 1, currentTarget.player1Hits)
                 checkWinner(1)
             }
-            // Oyuncu 1 Uzun Basma (Direkt Nokta Atışı)
+            // Oyuncu 1 Uzun Basma
             holder.player1Cell.setOnLongClickListener {
                 currentTarget.player1Hits = if (currentTarget.player1Hits == 4) 0 else 4
                 notifyItemChanged(position)
-
                 onHit(currentTarget.label, 1, currentTarget.player1Hits)
                 checkWinner(1)
                 true
@@ -88,20 +80,19 @@ class DartAdapter(
             holder.player2Cell.setOnClickListener {
                 currentTarget.player2Hits = if (currentTarget.player2Hits >= 3) 0 else currentTarget.player2Hits + 1
                 notifyItemChanged(position)
-
                 onHit(currentTarget.label, 2, currentTarget.player2Hits)
                 checkWinner(2)
             }
+            // Oyuncu 2 Uzun Basma
             holder.player2Cell.setOnLongClickListener {
                 currentTarget.player2Hits = if (currentTarget.player2Hits == 4) 0 else 4
                 notifyItemChanged(position)
-
                 onHit(currentTarget.label, 2, currentTarget.player2Hits)
                 checkWinner(2)
                 true
             }
         } else {
-            // Eğer salt okunur moddaysa tıklama olaylarını temizle
+            // Salt okunur modda tıklama olaylarını temizle
             holder.player1Cell.setOnClickListener(null)
             holder.player1Cell.setOnLongClickListener(null)
             holder.player2Cell.setOnClickListener(null)

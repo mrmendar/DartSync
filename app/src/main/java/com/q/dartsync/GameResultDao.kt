@@ -73,4 +73,10 @@ interface GameResultDao {
     suspend fun getSumOfRemainingP2(name: String): Int
 
 
+    @Query("SELECT * FROM game_results WHERE userId = :currentUserId")
+    fun getMyResults(currentUserId: String): List<GameResult>
+
+    @Query("SELECT * FROM game_results WHERE userId = :currentId ORDER BY date DESC")
+    fun getMyStats(currentId: String): List<GameResult>
+
 }
