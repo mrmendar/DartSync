@@ -12,14 +12,16 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
 
-    // 🔥 KRİTİK EKLEME: Uygulamanın açıldığı milisaniyeyi tutuyoruz.
-    // Bu sayede uygulamayı açmadan önce atılmış davetleri filtreleyeceğiz.
+    // 🔥 Davet dinleyicisini kontrol altında tutmak için değişken
+    private var inviteListener: ListenerRegistration? = null
+
     private val sessionStartTime = System.currentTimeMillis()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,12 +33,22 @@ class HomeActivity : AppCompatActivity() {
 
         setupUI()
         fetchUserData()
+    }
 
-        // Gelen oyun davetlerini dinle
+    // --- 📡 LİFECYCLE YÖNETİMİ (Crash Önleyici) ---
+
+    override fun onStart() {
+        super.onStart()
+        // Uygulama ekrana geldiğinde dinlemeye başla
         listenForGameInvites()
     }
 
-    // --- 📡 ONLINE DURUM YÖNETİMİ ---
+    override fun onStop() {
+        super.onStop()
+        // 🔥 KRİTİK: Uygulama durduğunda (arka plana geçtiğinde) dinlemeyi kes.
+        // Böylece BadTokenException (çökme) riski ortadan kalkar.
+        inviteListener?.remove()
+    }
 
     override fun onResume() {
         super.onResume()
@@ -53,29 +65,29 @@ class HomeActivity : AppCompatActivity() {
         db.collection("users").document(myUid).update("isOnline", status)
     }
 
-    // --- 🎮 DAVET SİSTEMİ (ZOMBİ KORUMALI) ---
+    // --- 🎮 DAVET SİSTEMİ ---
 
     private fun listenForGameInvites() {
         val myUid = auth.currentUser?.uid ?: return
 
-        db.collection("gameInvites")
+        // Önceki listener varsa temizle
+        inviteListener?.remove()
+
+        inviteListener = db.collection("gameInvites")
             .whereEqualTo("guestId", myUid)
             .whereEqualTo("status", "pending")
             .addSnapshotListener { snapshots, e ->
                 if (e != null) return@addSnapshotListener
 
+                // 🔥 GÜVENLİK: Activity ölme aşamasındaysa hiçbir UI işlemi yapma
+                if (isFinishing || isDestroyed) return@addSnapshotListener
+
                 snapshots?.let {
                     for (dc in it.documentChanges) {
-                        // Sadece yeni eklenen dökümanlara bak
                         if (dc.type == DocumentChange.Type.ADDED) {
                             val doc = dc.document
-
-                            // 🔥 VERİ KAYBI ÖNLEYİCİ FİLTRE:
-                            // Davetin atılma zamanını milisaniye cinsinden alıyoruz.
                             val inviteTime = doc.getTimestamp("timestamp")?.toDate()?.time ?: 0
 
-                            // Eğer davet, uygulama açıldıktan sonra (veya tam o sırada) geldiyse göster.
-                            // 5000ms (5sn) pay bırakıyoruz ki sunucu gecikmeleri sorun yaratmasın.
                             if (inviteTime > (sessionStartTime - 5000)) {
                                 val hostName = doc.getString("hostNickname") ?: "Bir arkadaşın"
                                 val roomCode = doc.getString("roomCode") ?: ""
@@ -91,6 +103,9 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun showInviteDialog(hostName: String, roomCode: String, gameMode: String, inviteId: String) {
+        // 🔥 GÜVENLİK KONTROLÜ: Activity pencere eklemeye uygun mu?
+        if (isFinishing || isDestroyed) return
+
         AlertDialog.Builder(this)
             .setTitle("🎮 Meydan Okuma!")
             .setMessage("$hostName seni $gameMode maçına bekliyor. Katılmak ister misin?")
@@ -120,7 +135,7 @@ class HomeActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // --- 🛠️ DİĞER UI VE MOD İŞLEMLERİ (MEVCUT KODUN) ---
+    // --- 🛠️ DİĞER UI İŞLEMLERİ ---
 
     private fun setupUI() {
         val cardStartGame = findViewById<CardView>(R.id.cardStartGame)
@@ -138,6 +153,7 @@ class HomeActivity : AppCompatActivity() {
 
         btnSignOut.setOnClickListener {
             updateOnlineStatus(false)
+            inviteListener?.remove() // Dinleyiciyi kapat
             auth.signOut()
             val intent = Intent(this, AuthActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -150,7 +166,9 @@ class HomeActivity : AppCompatActivity() {
         val tvUsername = findViewById<TextView>(R.id.tvUsername)
         val currentUser = auth.currentUser ?: return
         db.collection("users").document(currentUser.uid).get().addOnSuccessListener { doc ->
-            tvUsername.text = "${doc.getString("nickname") ?: "Dartçı"}!"
+            if (!(isFinishing || isDestroyed)) {
+                tvUsername.text = "${doc.getString("nickname") ?: "Dartçı"}!"
+            }
         }
     }
 

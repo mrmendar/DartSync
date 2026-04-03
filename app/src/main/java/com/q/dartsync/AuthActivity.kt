@@ -7,6 +7,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.airbnb.lottie.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 
 class AuthActivity : AppCompatActivity() {
@@ -65,8 +66,19 @@ class AuthActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         val currentUser = auth.currentUser
+
+        // Eğer halihazırda giriş yapmış bir kullanıcı varsa
         if (currentUser != null) {
-            goToHome()
+            // Uygulama "Debug" modundaysa (yani sen Android Studio'dan Build alıyorsan)
+            if (BuildConfig.DEBUG) {
+                // Geliştirme aşamasında her seferinde giriş ekranını görmek için oturumu kapatıyoruz
+                auth.signOut()
+                // Not: Burada herhangi bir işlem yapmıyoruz, uygulama AuthActivity'de kalıyor.
+            } else {
+                // Uygulama yayınlanmış sürümdeyse (kullanıcıların telefonunda)
+                // Kullanıcıyı bekletmeden ana ekrana gönderiyoruz
+                goToHome()
+            }
         }
     }
 
