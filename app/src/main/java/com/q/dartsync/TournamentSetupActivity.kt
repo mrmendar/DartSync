@@ -13,16 +13,21 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class TournamentSetupActivity : AppCompatActivity() {
 
     private lateinit var adapter: ParticipantInputAdapter
+    private lateinit var db: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tournament_setup)
+
+        db = FirebaseFirestore.getInstance()
 
         val etCount = findViewById<EditText>(R.id.etParticipantCount)
         val btnUpdate = findViewById<Button>(R.id.btnUpdateList)
@@ -30,12 +35,10 @@ class TournamentSetupActivity : AppCompatActivity() {
         val rvInputs = findViewById<RecyclerView>(R.id.rvParticipantInputs)
         val rbCricket = findViewById<RadioButton>(R.id.rbCricket)
 
-        // 1. Başlangıç Kurulumu (Varsayılan 4 Kişi)
         adapter = ParticipantInputAdapter(4)
         rvInputs.layoutManager = LinearLayoutManager(this)
         rvInputs.adapter = adapter
 
-        // 2. Sayı Güncelleme Butonu
         btnUpdate.setOnClickListener {
             val count = etCount.text.toString().toIntOrNull() ?: 0
             if (count in 2..32) {
@@ -45,80 +48,93 @@ class TournamentSetupActivity : AppCompatActivity() {
             }
         }
 
-        // 3. Turnuvayı Başlatma Butonu (Animasyonlu)
         btnStart.setOnClickListener {
             val names = adapter.getEnteredNames()
             val countString = etCount.text.toString()
             val expectedCount = countString.toIntOrNull() ?: 0
 
-            // İsimler eksik mi kontrol et
             if (countString.isEmpty() || names.size < expectedCount) {
                 Toast.makeText(this, "Lütfen tüm isimleri doldur imat!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 🎯 KURA ANİMASYONUNU BAŞLAT
             showShuffleAnimation(names) {
-                // Bu kısım animasyon bittiğinde (2.5 sn sonra) çalışacak:
-
-                // İsimleri karıştır (Gerçek kura çekimi)
-                val shuffledNames = names.shuffled()
-
-                // Seçilen oyun modunu tespit et
                 val selectedMode = if (rbCricket.isChecked) "CRICKET" else "501"
-
-                // EKRAN GEÇİŞİ
-                val intent = Intent(this, TournamentBracketActivity::class.java).apply {
-                    putStringArrayListExtra("NAMES", ArrayList(shuffledNames))
-                    putExtra("SELECTED_MODE", selectedMode)
-                }
-                startActivity(intent)
-
-                val modeText = if (selectedMode == "CRICKET") "Kriket" else "501"
-                Toast.makeText(this, "$modeText modunda kuralar çekildi!", Toast.LENGTH_SHORT).show()
+                // 🎯 FIRESTORE KAYIT OPERASYONU BAŞLIYOR
+                saveAndStartTournament(names.shuffled(), selectedMode)
             }
         }
     }
 
-    // 🎰 KURA ANİMASYONU MOTORU
+    private fun saveAndStartTournament(shuffledNames: List<String>, mode: String) {
+        val tournamentId = UUID.randomUUID().toString()
+
+        // 1. Maçları Double Elimination (Çift Eleme) mantığıyla oluştur
+        val matches = TournamentLogic.buildTournament(shuffledNames, TournamentType.DOUBLE_ELIMINATION, tournamentId)
+
+        // 2. Turnuva ana oturumunu oluştur
+        val session = TournamentSession(
+            tournamentId = tournamentId,
+            name = "Akşam Turnuvası - $mode",
+            type = TournamentType.DOUBLE_ELIMINATION,
+            participants = shuffledNames
+        )
+
+        val batch = db.batch()
+        val tournamentRef = db.collection("tournaments").document(tournamentId)
+
+        // Ana dökümanı ekle
+        batch.set(tournamentRef, session)
+
+        // Tüm maçları alt koleksiyona ekle
+        matches.forEach { match ->
+            val matchRef = tournamentRef.collection("matches").document(match.matchId)
+            batch.set(matchRef, match)
+        }
+
+        // 3. Buluta gönder
+        batch.commit().addOnSuccessListener {
+            val intent = Intent(this, TournamentBracketActivity::class.java).apply {
+                putExtra("TOURNAMENT_ID", tournamentId)
+                putExtra("SELECTED_MODE", mode)
+            }
+            startActivity(intent)
+            finish()
+        }.addOnFailureListener {
+            Toast.makeText(this, "Hata: ${it.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun showShuffleAnimation(names: List<String>, onComplete: () -> Unit) {
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_shuffle_animation, null)
         val tvName = view.findViewById<TextView>(R.id.tvShufflingName)
 
         dialog.setContentView(view)
-        dialog.setCancelable(false) // Animasyon sırasında kapatılmasın
+        dialog.setCancelable(false)
         dialog.show()
 
         lifecycleScope.launch {
-            val duration = 2500L // Animasyon süresi
+            val duration = 2500L
             val startTime = System.currentTimeMillis()
-            var delayTime = 60L // Başlangıç hızı
+            var delayTime = 60L
 
             while (System.currentTimeMillis() - startTime < duration) {
-                // Listeden rastgele bir isim göster
                 tvName.text = names.random()
-
-                // Hafif büyüme efekti
                 tvName.scaleX = 1.1f
                 tvName.scaleY = 1.1f
-
                 delay(delayTime)
-
                 tvName.animate().scaleX(1.0f).scaleY(1.0f).setDuration(delayTime).start()
-
-                // Sona yaklaştıkça yavaşla (Dramatik etki)
                 if (System.currentTimeMillis() - startTime > duration * 0.7) {
                     delayTime += 25L
                 }
             }
 
-            // Sonuç aşaması
             tvName.text = "Kuralar Hazır! ✅"
-            tvName.setTextColor(Color.parseColor("#00D26A")) // Yeşil onay
+            tvName.setTextColor(Color.parseColor("#00D26A"))
             delay(1000)
             dialog.dismiss()
-            onComplete() // Turnuva ağacına geçişi tetikle
+            onComplete()
         }
     }
 }

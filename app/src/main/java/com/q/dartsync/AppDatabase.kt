@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
  * - GameResult tablosuna 'winnerName' eklendi.
  * - Antrenman modu (Finish Master) için istatistik kolonları eklendi.
  */
-@Database(entities = [GameResult::class], version = 5, exportSchema = false)
+@Database(entities = [GameResult::class], version = 7, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun gameResultDao(): GameResultDao

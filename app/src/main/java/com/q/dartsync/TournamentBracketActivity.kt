@@ -1,41 +1,47 @@
 package com.q.dartsync
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
-import android.view.View
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.tabs.TabLayout
+import com.google.firebase.firestore.FirebaseFirestore
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
 import nl.dionsegijn.konfetti.xml.KonfettiView
 import java.util.concurrent.TimeUnit
 
-
-
 class TournamentBracketActivity : AppCompatActivity() {
 
-    private lateinit var bracketContainer: LinearLayout
+    private lateinit var db: FirebaseFirestore
+    private lateinit var adapter: TournamentAdapter
     private lateinit var viewKonfetti: KonfettiView
+
+    private var tournamentId: String = ""
     private var selectedMode: String = "501"
+    private var systemType: String = "SINGLE_ELIMINATION"
+    private var targetLegs: Int = 3
 
-    private val allRounds = mutableListOf<MutableList<TournamentMatch>>()
-    private var lastClickedRoundIndex = -1
-    private var lastClickedMatchIndex = -1
+    private var allMatches = listOf<TournamentMatch>()
+    private var currentBracketView = BracketType.WINNERS
 
-    // 🔥 MAÇ SONUCU ALICI
+    // 🔥 MAÇ SONUCUNU SKORLARLA BİRLİKTE ALAN MERKEZ
     private val getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
-            val winnerName = result.data?.getStringExtra("WINNER_NAME")
-            if (winnerName != null && lastClickedRoundIndex != -1) {
-                allRounds[lastClickedRoundIndex][lastClickedMatchIndex].winner = winnerName
-                generateNextRoundsFrom(lastClickedRoundIndex)
-                renderBracket()
+            val data = result.data
+            val winnerId = data?.getStringExtra("WINNER_ID")
+            val winnerName = data?.getStringExtra("WINNER_NAME")
+            val matchId = data?.getStringExtra("MATCH_ID")
+            val p1Score = data?.getIntExtra("P1_SCORE", 0) ?: 0
+            val p2Score = data?.getIntExtra("P2_SCORE", 0) ?: 0
+
+            if (matchId != null) {
+                processTournamentLogic(matchId, winnerId, winnerName ?: "Bilinmeyen", p1Score, p2Score)
             }
         }
     }
@@ -44,150 +50,170 @@ class TournamentBracketActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tournament_bracket)
 
-        bracketContainer = findViewById(R.id.bracketContainer)
         viewKonfetti = findViewById(R.id.viewKonfetti)
+        db = FirebaseFirestore.getInstance()
 
-        val rawNames = intent.getStringArrayListExtra("NAMES") ?: arrayListOf()
-        val cleanNames = rawNames.filter { it.isNotBlank() }.distinct()
+        tournamentId = intent.getStringExtra("TOURNAMENT_ID") ?: ""
         selectedMode = intent.getStringExtra("SELECTED_MODE") ?: "501"
+        systemType = intent.getStringExtra("SYSTEM_TYPE") ?: "SINGLE_ELIMINATION"
 
-        val firstRoundMatches = createInitialMatches(cleanNames).toMutableList()
-        allRounds.clear()
-        allRounds.add(firstRoundMatches)
-
-        generateNextRoundsFrom(0)
-        renderBracket()
+        setupRecyclerView()
+        setupTabs()
+        listenToTournamentData()
     }
 
-    private fun createInitialMatches(participants: List<String>): List<TournamentMatch> {
-        val n = participants.size
-        val nextPowerOfTwo = Math.pow(2.0, Math.ceil(Math.log(n.toDouble()) / Math.log(2.0))).toInt()
-        val byeCount = nextPowerOfTwo - n
-        val shuffledNames = participants.shuffled()
-        val matches = mutableListOf<TournamentMatch>()
-
-        var currentIndex = 0
-        for (i in 0 until byeCount) {
-            matches.add(TournamentMatch(shuffledNames[currentIndex], "BYE", shuffledNames[currentIndex], 1, true))
-            currentIndex++
+    private fun setupRecyclerView() {
+        val rvMatches = findViewById<RecyclerView>(R.id.rvMatches)
+        adapter = TournamentAdapter(emptyList()) { match ->
+            launchMatch(match)
         }
-        while (currentIndex < n) {
-            matches.add(TournamentMatch(shuffledNames[currentIndex], shuffledNames[currentIndex + 1], null, 1))
-            currentIndex += 2
-        }
-        return matches
+        rvMatches.layoutManager = LinearLayoutManager(this)
+        rvMatches.adapter = adapter
     }
 
-    private fun generateNextRoundsFrom(currentRoundIndex: Int) {
-        val currentRound = allRounds[currentRoundIndex]
+    private fun setupTabs() {
+        val tabLayout = findViewById<TabLayout>(R.id.tabLayoutBrackets)
+        tabLayout.removeAllTabs()
 
-        if (currentRound.size > 1) {
-            val winners = currentRound.map { it.winner ?: "Bekleniyor..." }
-            val nextMatches = mutableListOf<TournamentMatch>()
+        // Turnuva tipine göre sekmeleri kuruyoruz
+        if (systemType == "GROUP_STAGE") {
+            tabLayout.addTab(tabLayout.newTab().setText("Puan Durumu"))
+            tabLayout.addTab(tabLayout.newTab().setText("Grup Maçları"))
+            currentBracketView = BracketType.GROUP
+        } else {
+            tabLayout.addTab(tabLayout.newTab().setText("Winners"))
+            tabLayout.addTab(tabLayout.newTab().setText("Losers"))
+            currentBracketView = BracketType.WINNERS
+        }
 
-            var i = 0
-            while (i < winners.size) {
-                if (i + 1 < winners.size) {
-                    nextMatches.add(TournamentMatch(winners[i], winners[i + 1], null, currentRoundIndex + 2))
-                    i += 2
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                if (systemType == "GROUP_STAGE") {
+                    // Şimdilik sadece maç listesini gösteriyoruz
+                    currentBracketView = BracketType.GROUP
                 } else {
-                    nextMatches.add(TournamentMatch(winners[i], "BYE", winners[i], currentRoundIndex + 2, true))
-                    i += 1
+                    currentBracketView = if (tab?.position == 0) BracketType.WINNERS else BracketType.LOSERS
+                }
+                filterAndDisplayMatches()
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+
+    private fun listenToTournamentData() {
+        if (tournamentId.isEmpty()) return
+
+        db.collection("tournaments").document(tournamentId).addSnapshotListener { snapshot, _ ->
+            snapshot?.let {
+                targetLegs = it.getLong("legs")?.toInt() ?: 3
+            }
+        }
+
+        db.collection("tournaments").document(tournamentId)
+            .collection("matches")
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) return@addSnapshotListener
+
+                allMatches = snapshots?.toObjects(TournamentMatch::class.java) ?: emptyList()
+                checkTournamentWinner()
+                filterAndDisplayMatches()
+            }
+    }
+
+    private fun filterAndDisplayMatches() {
+        val filteredList = allMatches.filter { it.bracketType == currentBracketView }
+            .sortedBy { it.round }
+        adapter.updateMatches(filteredList)
+    }
+
+    private fun launchMatch(match: TournamentMatch) {
+        val target = if (selectedMode.uppercase() == "CRICKET") CricketActivity::class.java else MainActivity::class.java
+        val intent = Intent(this, target).apply {
+            putExtra("P1_NAME", match.player1)
+            putExtra("P2_NAME", match.player2)
+            putExtra("MATCH_ID", match.matchId)
+            putExtra("IS_TOURNAMENT", true)
+            putExtra("TARGET_LEGS", targetLegs)
+        }
+        getResult.launch(intent)
+    }
+
+    private fun processTournamentLogic(matchId: String, winnerId: String?, winnerName: String, p1Score: Int, p2Score: Int) {
+        val currentMatch = allMatches.find { it.matchId == matchId } ?: return
+
+        val isDraw = (p1Score == p2Score && p1Score > 0)
+        val loserId = if (winnerId == currentMatch.player1Id) currentMatch.player2Id else currentMatch.player1Id
+        val loserName = if (winnerName == currentMatch.player1) currentMatch.player2 else currentMatch.player1
+
+        val batch = db.batch()
+        val tournamentRef = db.collection("tournaments").document(tournamentId)
+
+        val currentMatchRef = tournamentRef.collection("matches").document(matchId)
+        batch.update(currentMatchRef, mapOf(
+            "status" to "finished",
+            "winner" to if (isDraw) "Berabere" else winnerName,
+            "winnerId" to if (isDraw) null else winnerId,
+            "p1Score" to p1Score,
+            "p2Score" to p2Score,
+            "isDraw" to isDraw,
+            "loserId" to if (isDraw) null else loserId
+        ))
+
+        if (!isDraw && winnerId != null) {
+            currentMatch.nextMatchId?.let { nextId ->
+                val nextMatch = allMatches.find { it.matchId == nextId }
+                if (nextMatch != null) {
+                    val nextRef = tournamentRef.collection("matches").document(nextId)
+                    val fieldName = if (nextMatch.player1.isEmpty() || nextMatch.player1 == "TBD" || nextMatch.player1.contains("Winner")) "player1" else "player2"
+                    batch.update(nextRef, fieldName, winnerName)
+                    batch.update(nextRef, if (fieldName == "player1") "player1Id" else "player2Id", winnerId)
                 }
             }
 
-            if (allRounds.size > currentRoundIndex + 1) {
-                allRounds[currentRoundIndex + 1] = nextMatches
-                generateNextRoundsFrom(currentRoundIndex + 1)
-            } else {
-                allRounds.add(nextMatches)
+            currentMatch.loserTargetMatchId?.let { lbId ->
+                val lbMatch = allMatches.find { it.matchId == lbId }
+                if (lbMatch != null) {
+                    val lbRef = tournamentRef.collection("matches").document(lbId)
+                    val fieldName = if (lbMatch.player1.contains("WB L-")) "player1" else "player2"
+                    batch.update(lbRef, fieldName, loserName)
+                    batch.update(lbRef, if (fieldName == "player1") "player1Id" else "player2Id", loserId)
+                }
             }
-        } else if (currentRound.size == 1 && currentRound[0].winner != null) {
-            // 🎉 ŞAMPİYON BELLİ OLDU!
-            triggerChampionCelebration(currentRound[0].winner!!)
+        }
+
+        batch.commit().addOnSuccessListener {
+            val msg = if (isDraw) "Maç Berabere Bitti!" else "Sonuç: $p1Score - $p2Score"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun checkTournamentWinner() {
+        if (allMatches.isEmpty() || systemType == "GROUP_STAGE") return
+
+        val pendingMatches = allMatches.filter { it.status != "finished" }
+        if (pendingMatches.isEmpty()) {
+            val finalMatch = allMatches.maxByOrNull { it.round }
+            finalMatch?.winner?.let {
+                if (it != "Berabere" && it != "TBD") triggerChampionCelebration(it)
+            }
         }
     }
 
     private fun triggerChampionCelebration(winner: String) {
-        // 1. Konfeti Partisi Ayarları
         val party = Party(
-            speed = 0f,
-            maxSpeed = 30f,
-            damping = 0.9f,
-            spread = 360,
+            speed = 0f, maxSpeed = 30f, damping = 0.9f, spread = 360,
             colors = listOf(0xfce18a, 0xff726d, 0xf4306d, 0xb48def, 0x00D1FF, 0x00D26A),
             position = Position.Relative(0.5, 0.3),
             emitter = Emitter(duration = 5, TimeUnit.SECONDS).perSecond(100)
         )
         viewKonfetti.start(party)
 
-        // 2. Diyalog Göster
         AlertDialog.Builder(this)
             .setTitle("🏆 TURNUVA ŞAMPİYONU 🏆")
-            .setMessage("Tebrikler $winner!\nDartSync Turnuvasını kazandın.")
+            .setMessage("Tebrikler $winner!\nBu turnuvanın en büyüğü sensin.")
             .setPositiveButton("Kupayı Al") { _, _ -> finish() }
             .setCancelable(false)
             .show()
-    }
-
-    private fun renderBracket() {
-        bracketContainer.removeAllViews()
-        val matchHeight = 200
-        val baseMargin = 40
-
-        allRounds.forEachIndexed { rIndex, roundMatches ->
-            val column = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.TOP
-                setPadding(60, 0, 60, 0)
-            }
-
-            // --- 📐 SİMETRİK AĞAÇ MATEMATİĞİ ---
-            val initialTopMargin = ((Math.pow(2.0, rIndex.toDouble()) - 1) * (matchHeight / 2 + baseMargin)).toInt()
-            val verticalMargin = (Math.pow(2.0, rIndex.toDouble()) * baseMargin).toInt()
-
-            roundMatches.forEachIndexed { mIndex, match ->
-                val matchView = layoutInflater.inflate(R.layout.item_match_node, column, false)
-                val tvTop = matchView.findViewById<TextView>(R.id.tvPlayerTop)
-                val tvBottom = matchView.findViewById<TextView>(R.id.tvPlayerBottom)
-
-                tvTop.text = match.player1
-                tvBottom.text = match.player2
-
-                if (match.player2 == "BYE") {
-                    tvBottom.text = "--- BYE ---"
-                    tvBottom.setTextColor(Color.GRAY)
-                    matchView.alpha = 0.6f
-                }
-
-                if (match.winner != null) {
-                    if (match.winner == match.player1) tvTop.setTextColor(Color.parseColor("#00D26A"))
-                    else tvBottom.setTextColor(Color.parseColor("#00D26A"))
-                }
-
-                matchView.setOnClickListener {
-                    if (match.winner == null && match.player1 != "Bekleniyor..." &&
-                        match.player2 != "Bekleniyor..." && match.player2 != "BYE") {
-
-                        lastClickedRoundIndex = rIndex
-                        lastClickedMatchIndex = mIndex
-
-                        val target = if (selectedMode.uppercase() == "CRICKET") CricketActivity::class.java else MainActivity::class.java
-                        val intent = Intent(this, target).apply {
-                            putExtra("P1_NAME", match.player1)
-                            putExtra("P2_NAME", match.player2)
-                            putExtra("IS_TOURNAMENT", true)
-                        }
-                        getResult.launch(intent)
-                    }
-                }
-
-                val params = LinearLayout.LayoutParams(550, matchHeight)
-                val top = if (mIndex == 0) initialTopMargin else (verticalMargin * 2)
-                params.setMargins(0, top, 0, 0)
-                column.addView(matchView, params)
-            }
-            bracketContainer.addView(column)
-        }
     }
 }

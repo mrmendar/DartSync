@@ -338,6 +338,7 @@ class FinishMasterActivity : AppCompatActivity() {
     private fun resetLevel() { currentRemaining = targetLevel; dartsThrownInLevel = 0; updateUI() }
 
     override fun onBackPressed() {
+        super.onBackPressed()
         if (isOnline) {
             AlertDialog.Builder(this)
                 .setTitle("Maçtan Ayrıl")

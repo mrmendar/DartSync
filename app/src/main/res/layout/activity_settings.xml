@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F111A"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ayarlar"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Güvenlik"
+        android:textColor="#5C6BC0"
+        android:textSize="14sp"
+        android:textAllCaps="true"
+        android:layout_marginBottom="8dp"/>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardChangePassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="#1A1D29"
+        app:cardCornerRadius="12dp"
+        android:layout_marginBottom="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:gravity="center_vertical">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_lock_idle_lock"
+                app:tint="#FF5252"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Şifreyi Değiştir"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="16dp"
+                android:textSize="16sp"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Oyun Deneyimi"
+        android:textColor="#5C6BC0"
+        android:textSize="14sp"
+        android:textAllCaps="true"
+        android:layout_marginBottom="8dp"/>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="#1A1D29"
+        app:cardCornerRadius="12dp"
+        android:layout_marginBottom="24dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Titreşim (Haptik Geribildirim)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"/>
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchVibration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:thumbTint="#00D26A"
+                    app:trackTint="#3300D26A"/>
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#2A2E3D"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Ses Efektleri"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"/>
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchSound"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:thumbTint="#00D26A"
+                    app:trackTint="#3300D26A"/>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DartSync Pro v1.0.4-beta\nComputer Engineering Project"
+        android:textColor="#4A4F6A"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
+</LinearLayout>

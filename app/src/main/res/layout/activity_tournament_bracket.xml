@@ -17,22 +17,36 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <HorizontalScrollView
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutBrackets"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
-        android:fillViewport="true"
-        android:scrollbars="none"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="#1A1A2E"
+        app:tabTextColor="#8B8B9E"
+        app:tabSelectedTextColor="#00D1FF"
+        app:tabIndicatorColor="#00D1FF"
         app:layout_constraintTop_toBottomOf="@id/tvTitle">
 
-        <LinearLayout
-            android:id="@+id/bracketContainer"
+        <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:padding="24dp" />
-    </HorizontalScrollView>
+            android:layout_height="wrap_content"
+            android:text="Winners" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Losers" />
+    </com.google.android.material.tabs.TabLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMatches"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:padding="8dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/tabLayoutBrackets"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <nl.dionsegijn.konfetti.xml.KonfettiView
         android:id="@+id/viewKonfetti"

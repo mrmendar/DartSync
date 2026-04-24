@@ -21,15 +21,19 @@ class MainActivity : AppCompatActivity() {
     private var p2Remaining = 501
     private var currentPlayer = 1
     private var currentInput = ""
-
-    // 🔥 Ok başına giriş için tur takibi
     private var dartsInTurn = 0
+
+    // 🔥 TURNUVA VE BEST OF 3 DEĞİŞKENLERİ
+    private var p1Legs = 0
+    private var p2Legs = 0
+    private val targetLegs = 2 // 2 olan kazanır (Best of 3)
+    private var isTournament = false
+    private var matchId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 1. UI Bileşenlerini Bağla
         val editP1Name = findViewById<EditText>(R.id.editPlayer1Name)
         val editP2Name = findViewById<EditText>(R.id.editPlayer2Name)
         val tvP1Score = findViewById<TextView>(R.id.tvP1Remaining)
@@ -39,13 +43,15 @@ class MainActivity : AppCompatActivity() {
         val btnReset = findViewById<ImageButton>(R.id.btnReset)
         val btnEnter = findViewById<Button>(R.id.btnEnterScore)
 
+        // 🔥 Turnuva Bilgilerini Al
+        isTournament = intent.getBooleanExtra("IS_TOURNAMENT", false)
+        matchId = intent.getStringExtra("MATCH_ID")
         val p1FromIntent = intent.getStringExtra("P1_NAME")
         val p2FromIntent = intent.getStringExtra("P2_NAME")
 
         if (!p1FromIntent.isNullOrEmpty()) editP1Name.setText(p1FromIntent)
         if (!p2FromIntent.isNullOrEmpty()) editP2Name.setText(p2FromIntent)
 
-        // Siyah Ekran Önlemi ve Başlangıç Dialogu
         window.decorView.postDelayed({
             if (!isFinishing) {
                 showStartDialog(editP1Name, editP2Name, tvP1Score, tvP2Score, tvHint)
@@ -54,15 +60,13 @@ class MainActivity : AppCompatActivity() {
 
         setupKeypad(tvInputDisplay)
 
-        // 🎯 Skor Onaylama (Ok Başına İşlem)
         btnEnter?.setOnClickListener {
             val score = currentInput.toIntOrNull() ?: 0
-
             if (score > 60) {
-                Toast.makeText(this, "Geçersiz Skor! Tek ok max 60 olabilir.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Geçersiz Skor! Tek ok max 60.", Toast.LENGTH_SHORT).show()
                 clearInput(tvInputDisplay)
             } else if (currentInput.isNotEmpty()) {
-                processSingleDart(score, editP1Name.text.toString(), editP2Name.text.toString())
+                processSingleDart(score, editP1Name.text.toString(), editP2Name.text.toString(), tvP1Score, tvP2Score, tvHint)
                 clearInput(tvInputDisplay)
                 updateUI(tvP1Score, tvP2Score, tvHint)
             }
@@ -73,37 +77,56 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun processSingleDart(score: Int, p1Name: String, p2Name: String) {
+    private fun processSingleDart(score: Int, p1Name: String, p2Name: String, t1: TextView, t2: TextView, hint: TextView) {
         val currentScore = if (currentPlayer == 1) p1Remaining else p2Remaining
         val nextScore = currentScore - score
 
         when {
-            // 1. DURUM: GALİBİYET
+            // 🏆 LEG BİTTİ (KAZANMA)
             nextScore == 0 -> {
                 if (currentPlayer == 1) p1Remaining = 0 else p2Remaining = 0
                 totalDartsThrown += (dartsInTurn + 1)
-                showWinDialog(p1Name, p2Name)
+                handleLegWin(p1Name, p2Name, t1, t2, hint)
             }
 
-            // 2. DURUM: BUST (Sayı 0'ın altına düştü veya 1 kaldı)
+            // ❌ BUST
             nextScore < 0 || nextScore == 1 -> {
                 Toast.makeText(this, "BUST! Sıra değişti.", Toast.LENGTH_SHORT).show()
-                totalDartsThrown += 3 // Bust olan tur 3 ok sayılır
+                totalDartsThrown += 3
                 switchPlayer()
             }
 
-            // 3. DURUM: GEÇERLİ ATIŞ
+            // ✅ GEÇERLİ ATIŞ
             else -> {
                 if (currentPlayer == 1) p1Remaining = nextScore else p2Remaining = nextScore
                 dartsInTurn++
-
-                // Tur bitti mi? (3 ok atıldı mı?)
                 if (dartsInTurn == 3) {
                     totalDartsThrown += 3
                     switchPlayer()
                 }
             }
         }
+    }
+
+    private fun handleLegWin(p1Name: String, p2Name: String, t1: TextView, t2: TextView, hint: TextView) {
+        if (currentPlayer == 1) p1Legs++ else p2Legs++
+
+        // MAÇ BİTTİ Mİ? (Bir taraf 2 oldu mu?)
+        if (p1Legs >= targetLegs || p2Legs >= targetLegs) {
+            showWinDialog(p1Name, p2Name)
+        } else {
+            // SADECE LEG BİTTİ, SKORLARI SIFIRLA
+            Toast.makeText(this, "Leg Kazanıldı! Skor: $p1Legs - $p2Legs", Toast.LENGTH_LONG).show()
+            resetForNextLeg(t1, t2, hint)
+        }
+    }
+
+    private fun resetForNextLeg(t1: TextView, t2: TextView, hint: TextView) {
+        p1Remaining = startingScore
+        p2Remaining = startingScore
+        dartsInTurn = 0
+        currentPlayer = if ((p1Legs + p2Legs) % 2 == 0) 1 else 2 // Leg başlangıç sırası değişsin
+        updateUI(t1, t2, hint)
     }
 
     private fun switchPlayer() {
@@ -115,7 +138,6 @@ class MainActivity : AppCompatActivity() {
         t1.text = p1Remaining.toString()
         t2.text = p2Remaining.toString()
 
-        // Aktif oyuncu renklendirme
         if (currentPlayer == 1) {
             t1.setTextColor(Color.parseColor("#00D1FF"))
             t2.setTextColor(Color.WHITE)
@@ -124,28 +146,23 @@ class MainActivity : AppCompatActivity() {
             t2.setTextColor(Color.parseColor("#00D26A"))
         }
 
-        // 🔥 CheckoutHelper Entegrasyonu (Kalan ok sayısına göre öneri)
+        // Skor Tablosuna Leg Bilgisini Yazdır
+        val p1NameView = findViewById<EditText>(R.id.editPlayer1Name)
+        val p2NameView = findViewById<EditText>(R.id.editPlayer2Name)
+        p1NameView.setHint("P1 (Legs: $p1Legs)")
+        p2NameView.setHint("P2 (Legs: $p2Legs)")
+
         val currentRem = if (currentPlayer == 1) p1Remaining else p2Remaining
-        val dartsLeft = 3 - dartsInTurn
-
-        hint.text = CheckoutHelper.getSuggestion(currentRem, dartsLeft)
-
-        if (currentRem <= 170) {
-            hint.setTextColor(Color.parseColor("#FFD700"))
-        } else {
-            hint.setTextColor(Color.parseColor("#A0A0A0"))
-        }
+        hint.text = CheckoutHelper.getSuggestion(currentRem, 3 - dartsInTurn)
     }
 
     private fun setupKeypad(display: TextView) {
         for (i in 0..9) {
             val resId = resources.getIdentifier("btn$i", "id", packageName)
-            if (resId != 0) {
-                findViewById<Button>(resId)?.setOnClickListener {
-                    if (currentInput.length < 3) {
-                        currentInput += i.toString()
-                        display.text = currentInput
-                    }
+            findViewById<Button>(resId)?.setOnClickListener {
+                if (currentInput.length < 3) {
+                    currentInput += i.toString()
+                    display.text = currentInput
                 }
             }
         }
@@ -163,6 +180,8 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Oyun Modu Seç")
             .setItems(modes) { _, which ->
                 startingScore = if (which == 0) 301 else 501
+                p1Legs = 0
+                p2Legs = 0
                 resetGame(t1, t2, hint)
             }
             .setCancelable(false)
@@ -179,31 +198,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showWinDialog(p1Name: String, p2Name: String) {
-        val winner = if (p1Remaining == 0) p1Name.ifEmpty { "Oyuncu 1" } else p2Name.ifEmpty { "Oyuncu 2" }
+        val winner = if (p1Legs > p2Legs) p1Name.ifEmpty { "Oyuncu 1" } else p2Name.ifEmpty { "Oyuncu 2" }
         AlertDialog.Builder(this)
             .setTitle("MAÇ BİTTİ! 🏆")
-            .setMessage("Kazanan: $winner\nToplam $totalDartsThrown ok atıldı.")
-            .setPositiveButton("Kaydet") { _, _ -> saveToDb(p1Name, p2Name, winner) }
+            .setMessage("Kazanan: $winner\nSkor: $p1Legs - $p2Legs\nToplam $totalDartsThrown ok.")
+            .setPositiveButton("Sonucu Onayla") { _, _ -> saveToDb(p1Name, p2Name, winner) }
             .setCancelable(false)
             .show()
     }
 
     private fun saveToDb(p1: String, p2: String, winner: String) {
         lifecycleScope.launch {
+            // Room DB Kaydı (İstatistikler için)
             val result = GameResult(
                 player1Name = p1.ifEmpty { "Oyuncu 1" },
                 player2Name = p2.ifEmpty { "Oyuncu 2" },
                 date = System.currentTimeMillis(),
-                p1Snapshot = p1Remaining.toString(),
-                p2Snapshot = p2Remaining.toString(),
+                p1Snapshot = p1Legs.toString(),
+                p2Snapshot = p2Legs.toString(),
                 winnerName = winner,
                 totalDarts = totalDartsThrown,
                 userId = IdManager.getGuestId(this@MainActivity)
             )
             AppDatabase.getDatabase(this@MainActivity).gameResultDao().insertGame(result)
 
+            // 🔥 TURNUVA AĞACINA VERİ GÖNDERME
             val resultIntent = Intent()
             resultIntent.putExtra("WINNER_NAME", winner)
+            resultIntent.putExtra("WINNER_ID", winner) // ID sistemi isim üzerine kuruluysa
+            resultIntent.putExtra("MATCH_ID", matchId)
+            resultIntent.putExtra("P1_SCORE", p1Legs)
+            resultIntent.putExtra("P2_SCORE", p2Legs)
+
             setResult(RESULT_OK, resultIntent)
             finish()
         }
